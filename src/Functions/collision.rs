@@ -239,12 +239,12 @@ pub fn resolve_collisions_with_grid(balls: &mut Vec<Ball>, grids: &mut Vec<Grid>
                             continue;
                         }
 
-                        let (ball1 , ball2) = if self_index < other_index {
+                        let (ball1, ball2): (&mut Ball, &mut Ball) = if self_index < other_index {
                             let (left, right) = balls.split_at_mut(other_index);
                             (&mut left[self_index], &mut right[0])
                         } else {
-                            let (left, right) = balls.split_at_mut(other_index);
-                            (&mut left[0], &mut right[self_index])
+                            let (left, right) = balls.split_at_mut(self_index);
+                            (&mut right[0], &mut left[other_index])
                         };
 
                         ball_collision_correction(ball1, ball2);
@@ -253,9 +253,13 @@ pub fn resolve_collisions_with_grid(balls: &mut Vec<Ball>, grids: &mut Vec<Grid>
             }
         }
     }
-pub fn run_all_grid_code(grid_size:usize, grid: &mut Vec<Grid>, grids: &mut Vec<Grid>, ball_index: usize, ball: &Ball, window_x: f32, window_y: f32) {
-    regenerate_grids_if_resized(grid_size, grid, window_x, window_y);
-    find_ball_grid(grid_size, ball_index, ball, grids, window_x, window_y);
+pub fn run_all_grid_code(grid_size: usize, grids: &mut Vec<Grid>, balls: &Vec<Ball>, window_x: f32, window_y: f32) {
+    regenerate_grids_if_resized(grid_size, grids, window_x, window_y);
+
+    for ball_index in 0..balls.len() {
+        let ball: &Ball = &balls[ball_index];
+        find_ball_grid(grid_size, ball_index, ball, grids, window_x, window_y);
+    }
 }
 #[cfg(test)]
 mod tests {

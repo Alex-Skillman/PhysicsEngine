@@ -31,8 +31,11 @@ async fn main() {
     //Controls to starting spawn
     let mut balls: Vec<Ball> = generate_starting_balls(25, screen_width(), screen_height());
 
+    //Grid size
+    let grid_size: usize = 150;
+
     //Generates the grids to start before they regenerate inside the loop
-    let mut grids: Vec<Grid> = generate_starting_ball_grids(150, screen_width(), screen_height());
+    let mut grids: Vec<Grid> = generate_starting_ball_grids(grid_size, screen_width(), screen_height());
 
 
     //Ball held under mouse
@@ -76,7 +79,8 @@ async fn main() {
         if paused != true {
             //Checks for collisions inbetween each ball and every other ball
             //Adjust iterations based on current FPS to control stability vs performance
-            resolve_all_collisions(&mut balls);
+            run_all_grid_code(grid_size, &mut grids, &balls, window.width, window.height);
+            resolve_collisions_with_grid(&mut balls, &mut grids);
 
             //Controls the independant movement of the ball
             for ball in balls.iter_mut() {
