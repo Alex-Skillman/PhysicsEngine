@@ -32,7 +32,7 @@ async fn main() {
     let mut balls: Vec<Ball> = generate_starting_balls(25, screen_width(), screen_height());
 
     //Grid size
-    let grid_size: usize = 150;
+    let grid_size: usize = 30;
 
     //Generates the grids to start before they regenerate inside the loop
     let mut grids: Vec<Grid> = generate_starting_ball_grids(grid_size, screen_width(), screen_height());
@@ -65,6 +65,11 @@ async fn main() {
 
         //Draws the FPS, and ball count on the screen
         draw_screen_text(&balls);
+
+        //TEMP addition to add a ball each frame if FPS is above 40 to see when performance drops
+        if get_fps() > 40 {
+            balls.push(generate_ball(gen_range(0.0, screen_width()), gen_range(0.0, screen_height())));
+        }
 
         //BALL CONTROL
         ball_spawning(x, y, &mut balls);

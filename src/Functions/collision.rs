@@ -2,13 +2,7 @@ use crate::structs::structs::*;
 use crate::*;
 
 //Old ball collision functions
-pub fn resolve_ball_overlap(
-    ball1: &mut Ball,
-    ball2: &mut Ball,
-    distance: f32,
-    x_col_norm: f32,
-    y_col_norm: f32,
-) {
+pub fn resolve_ball_overlap(ball1: &mut Ball, ball2: &mut Ball, distance: f32, x_col_norm: f32, y_col_norm: f32,) {
     //Finds the overlap of balls and snaps them to a new coordinate
 
     //Calculate the overlap
@@ -30,12 +24,7 @@ pub fn find_collision_impulse(ball1: &Ball, ball2: &Ball, velocity_along_normal:
     let e: f32 = ball1.restitution * ball2.restitution;
     return -(1.0 + e) * velocity_along_normal / (1.0 / ball1.mass + 1.0 / ball2.mass);
 }
-pub fn change_velocity_from_collision(
-    ball1: &mut Ball,
-    ball2: &mut Ball,
-    collision_impulse: f32,
-    x_col_norm: f32,
-    y_col_norm: f32,
+pub fn change_velocity_from_collision(ball1: &mut Ball, ball2: &mut Ball, collision_impulse: f32, x_col_norm: f32, y_col_norm: f32,
 ) {
     //Uses the collision impulse to change the ball's velocity
 
@@ -111,12 +100,7 @@ pub fn generate_starting_ball_grids(grid_size: usize, window_x: f32, window_y: f
     }
     grids
 }
-pub fn regenerate_grids_if_resized(
-    grid_size: usize,
-    grid: &mut Vec<Grid>,
-    window_x: f32,
-    window_y: f32,
-) {
+pub fn regenerate_grids_if_resized(grid_size: usize, grid: &mut Vec<Grid>, window_x: f32, window_y: f32,) {
     //Recompute what the grid dimensions SHOULD be for the current window size
     let expected_x_count = ((window_x as usize) / grid_size) as usize + 1;
     let expected_y_count = ((window_y as usize) / grid_size) as usize + 1;
@@ -131,14 +115,7 @@ pub fn regenerate_grids_if_resized(
         *grid = generate_starting_ball_grids(grid_size, window_x, window_y);
     }
 }
-pub fn find_ball_grid(
-    grid_size: usize,
-    ball_index: usize,
-    ball: &Ball,
-    grids: &mut Vec<Grid>,
-    window_x: f32,
-    window_y: f32,
-) {
+pub fn find_ball_grid(grid_size: usize, ball_index: usize, ball: &Ball, grids: &mut Vec<Grid>, window_x: f32, window_y: f32,) {
     let collumn_count: usize = ((window_x as usize) / grid_size) + 1;
     let row_count: usize = ((window_y as usize) / grid_size) + 1;
 
@@ -152,42 +129,47 @@ pub fn find_ball_grid(
     let grid: &mut Grid = &mut grids[index];
     grid.ball_inside.push(ball_index);
 }
-pub fn find_posible_collisions(ball_grid: &Grid, grids: &Vec<Grid>) -> Vec<usize> {
-    //Initalizes the vector of balls that can collide with inside a grid
-    let mut possible_collisions: Vec<usize> = Vec::new();
-
-    //Saves the cell x and y into a variable
-    //Changes from usize to isize becuase below we subtract from them
-    let cell_x: isize = ball_grid.cell_coordinates.x as isize;
-    let cell_y: isize = ball_grid.cell_coordinates.y as isize;
-
-    // Check the cell itself plus its 8 neighbors.
-    //Checks for -1, 0, 1 which checks itself and all 8 cells around it
-    for dx in -1..=1 {
-        for dy in -1..=1 {
-            //Cordinates of each cell being tested
-            let nx = cell_x + dx;
-            let ny = cell_y + dy;
-
-            //If it is less than 0 then the cell is off the grid
-            if nx < 0 || ny < 0 {
-                continue;
-            }
-
-            //Convert nx and ny back to usize now that they are guarranteed to be positive
-            let (nx, ny) = (nx as usize, ny as usize);
-
-            for grid in grids.iter() {
-                //Checks if a grids coordinates matches the one being checked
-                if grid.cell_coordinates.x == nx && grid.cell_coordinates.y == ny {
-                    //Copies all balls in that grid into the possile_collisions Vec
-                    possible_collisions.extend(grid.ball_inside.iter().copied());
-                }
-            }
-        }
+fn grid_row_count(grids: &Vec<Grid>) -> usize {
+    grids.iter().map(|c| c.cell_coordinates.y).max().unwrap_or(0) + 1
+}
+fn grid_column_count(grids: &Vec<Grid>) -> usize {
+    grids.iter().map(|c| c.cell_coordinates.x).max().unwrap_or(0) + 1
+}
+fn grid_index(cell_x: usize, cell_y: usize, row_count: usize) -> usize {
+    cell_x * row_count + cell_y
+}
+fn resolve_ball_pair_if_colliding(balls: &mut Vec<Ball>, first_index: usize, second_index: usize) {
+    if first_index == second_index {
+        return;
     }
 
-    possible_collisions
+    if !ball_collision_detection(&balls[first_index], &balls[second_index]) {
+        return;
+    }
+
+    let (ball1, ball2): (&mut Ball, &mut Ball) = if first_index < second_index {
+        let (left, right) = balls.split_at_mut(second_index);
+        (&mut left[first_index], &mut right[0])
+    } else {
+        let (left, right) = balls.split_at_mut(first_index);
+        (&mut right[0], &mut left[second_index])
+    };
+
+    ball_collision_correction(ball1, ball2);
+}
+fn resolve_ball_pairs_inside_cell(balls: &mut Vec<Ball>, ball_indexes: &Vec<usize>) {
+    for first in 0..ball_indexes.len() {
+        for second in first + 1..ball_indexes.len() {
+            resolve_ball_pair_if_colliding(balls, ball_indexes[first], ball_indexes[second]);
+        }
+    }
+}
+fn resolve_ball_pairs_between_cells(balls: &mut Vec<Ball>, first_cell: &Vec<usize>, second_cell: &Vec<usize>) {
+    for first_index in first_cell.iter() {
+        for second_index in second_cell.iter() {
+            resolve_ball_pair_if_colliding(balls, *first_index, *second_index);
+        }
+    }
 }
 pub fn resolve_collisions_with_grid(balls: &mut Vec<Ball>, grids: &mut Vec<Grid>) {
     //Pulls all collision code together into one function that can be called to resolve collisions among every ball
@@ -197,55 +179,42 @@ pub fn resolve_collisions_with_grid(balls: &mut Vec<Ball>, grids: &mut Vec<Grid>
 
     resolve_collisions_with_grid_iterations(balls, grids, iterations);
 }
-fn resolve_collisions_with_grid_iterations(
-    balls: &mut Vec<Ball>,
-    grids: &mut Vec<Grid>,
-    iterations: i32,
-) {
+fn resolve_collisions_with_grid_iterations(balls: &mut Vec<Ball>,grids: &mut Vec<Grid>,iterations: i32,) {
+    let row_count: usize = grid_row_count(grids);
+    let column_count: usize = grid_column_count(grids);
+    let neighbor_offsets: [(isize, isize); 4] = [(1, -1), (1, 0), (1, 1), (0, 1)];
+
     for _ in 0..iterations {
-        //Iterates through all grids
-        for grid in 0..grids.len() {
-            //Iterates through balls in each grid
-            for ball_inside in 0..grids[grid].ball_inside.len() {
-                //Converts the loop counter into a ball index
-                let self_index = grids[grid].ball_inside[ball_inside];
-                let possible_collisions: Vec<usize> = find_posible_collisions(&grids[grid], grids);
+        for current_grid_index in 0..grids.len() {
+            resolve_ball_pairs_inside_cell(balls, &grids[current_grid_index].ball_inside);
 
-                //Iterates through ball2 in possible
-                for ball in 0..possible_collisions.len() {
-                    //Gets another index inside possible collisions
-                    let other_index = possible_collisions[ball];
+            let cell_x = grids[current_grid_index].cell_coordinates.x as isize;
+            let cell_y = grids[current_grid_index].cell_coordinates.y as isize;
 
-                    //If the same then the ball is being compared to itself
-                    if other_index <= self_index {
-                        continue;
-                    }
+            for (x_offset, y_offset) in neighbor_offsets {
+                let neighbor_x = cell_x + x_offset;
+                let neighbor_y = cell_y + y_offset;
 
-                    if !ball_collision_detection(&balls[self_index], &balls[other_index]) {
-                        continue;
-                    }
+                if neighbor_x < 0 || neighbor_y < 0 {
+                    continue;
+                }
 
-                    let (ball1, ball2): (&mut Ball, &mut Ball) = if self_index < other_index {
-                        let (left, right) = balls.split_at_mut(other_index);
-                        (&mut left[self_index], &mut right[0])
-                    } else {
-                        let (left, right) = balls.split_at_mut(self_index);
-                        (&mut right[0], &mut left[other_index])
-                    };
+                let neighbor_x = neighbor_x as usize;
+                let neighbor_y = neighbor_y as usize;
 
-                    ball_collision_correction(ball1, ball2);
+                if neighbor_x >= column_count || neighbor_y >= row_count {
+                    continue;
+                }
+
+                let neighbor_index = grid_index(neighbor_x, neighbor_y, row_count);
+                if let Some(neighbor_grid) = grids.get(neighbor_index) {
+                    resolve_ball_pairs_between_cells(balls, &grids[current_grid_index].ball_inside, &neighbor_grid.ball_inside);
                 }
             }
         }
     }
 }
-pub fn run_all_grid_code(
-    grid_size: usize,
-    grids: &mut Vec<Grid>,
-    balls: &Vec<Ball>,
-    window_x: f32,
-    window_y: f32,
-) {
+pub fn run_all_grid_code(grid_size: usize, grids: &mut Vec<Grid>, balls: &Vec<Ball>, window_x: f32, window_y: f32,) {
     regenerate_grids_if_resized(grid_size, grids, window_x, window_y);
 
     for grid in grids.iter_mut() {
@@ -328,6 +297,21 @@ mod tests {
         assert!(approx_eq(balls[0].x, 140.0));
         assert!(approx_eq(balls[1].x, 165.0));
         assert!(approx_eq(balls[2].x, 190.0));
+    }
+    #[test]
+    fn grid_resolution_collides_balls_across_cell_boundary() {
+        let grid_size = 150;
+        let mut balls = vec![
+            make_ball(145.0, 300.0, 10.0, 0.0),
+            make_ball(155.0, 300.0, 10.0, 0.0),
+        ];
+        let mut grids = generate_starting_ball_grids(grid_size, 800.0, 600.0);
+
+        run_all_grid_code(grid_size, &mut grids, &balls, 800.0, 600.0);
+        resolve_collisions_with_grid_iterations(&mut balls, &mut grids, 1);
+
+        assert!(balls[0].x < 145.0);
+        assert!(balls[1].x > 155.0);
     }
 
     //Testing for the find_collision_impulse function
