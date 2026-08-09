@@ -51,14 +51,29 @@ pub fn ball_collision_correction(ball1: &mut Ball, ball2: &mut Ball) {
     let dx: f32 = ball1.x - ball2.x;
     //Y axis distance
     let dy: f32 = ball1.y - ball2.y;
+    let dist_squared: f32 = dx * dx + dy * dy;
     //Direct line distance
-    let dist: f32 = (dx * dx + dy * dy).sqrt().max(0.0001);
+    let dist: f32 = dist_squared.sqrt().max(0.0001);
 
     //Calculate the collision normal
     //X axis collision normal
-    let nx: f32 = dx / dist;
+    let mut nx: f32 = dx / dist;
     //Y axis collision normal
-    let ny: f32 = dy / dist;
+    let mut ny: f32 = dy / dist;
+
+    if dist_squared < 0.0001 {
+        let velocity_dx: f32 = ball1.x_velocity - ball2.x_velocity;
+        let velocity_dy: f32 = ball1.y_velocity - ball2.y_velocity;
+        let velocity_dist: f32 = (velocity_dx * velocity_dx + velocity_dy * velocity_dy).sqrt();
+
+        if velocity_dist > 0.0001 {
+            nx = velocity_dx / velocity_dist;
+            ny = velocity_dy / velocity_dist;
+        } else {
+            nx = 1.0;
+            ny = 0.0;
+        }
+    }
 
     //Resolve any overlap inbetween the 2 collided balls
     resolve_ball_overlap(ball1, ball2, dist, nx, ny);

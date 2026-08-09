@@ -68,7 +68,7 @@ async fn main() {
 
         //TEMP addition to add a ball each frame if FPS is above 40 to see when performance drops
         if get_fps() > 40 {
-            balls.push(generate_ball(gen_range(0.0, screen_width()), gen_range(0.0, screen_height())));
+            balls.push(generate_ball(100.0, 100.0));
         }
 
         //BALL CONTROL
