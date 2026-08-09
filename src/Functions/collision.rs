@@ -171,44 +171,78 @@ fn resolve_ball_pairs_between_cells(balls: &mut Vec<Ball>, first_cell: &Vec<usiz
         }
     }
 }
-pub fn resolve_collisions_with_grid(balls: &mut Vec<Ball>, grids: &mut Vec<Grid>) {
+fn collision_neighbor_cell_range(balls: &Vec<Ball>, grid_size: usize) -> isize {
+    let max_diameter = balls
+        .iter()
+        .map(|ball| ball.radius * 2.0)
+        .fold(0.0, f32::max);
+
+    ((max_diameter / grid_size as f32).floor() as isize + 1).max(1)
+}
+pub fn resolve_collisions_with_grid(
+    grid_size: usize,
+    balls: &mut Vec<Ball>,
+    grids: &mut Vec<Grid>,
+    window_x: f32,
+    window_y: f32,
+) {
     //Pulls all collision code together into one function that can be called to resolve collisions among every ball
 
     let fps: i32 = get_fps();
-    let iterations: i32 = (fps / 2) * 3;
+    let iterations: i32 = 100;
 
-    resolve_collisions_with_grid_iterations(balls, grids, iterations);
+    resolve_collisions_with_grid_iterations(grid_size, balls, grids, iterations, window_x, window_y);
 }
-fn resolve_collisions_with_grid_iterations(balls: &mut Vec<Ball>,grids: &mut Vec<Grid>,iterations: i32,) {
-    let row_count: usize = grid_row_count(grids);
-    let column_count: usize = grid_column_count(grids);
-    let neighbor_offsets: [(isize, isize); 4] = [(1, -1), (1, 0), (1, 1), (0, 1)];
+fn resolve_collisions_with_grid_iterations(
+    grid_size: usize,
+    balls: &mut Vec<Ball>,
+    grids: &mut Vec<Grid>,
+    iterations: i32,
+    window_x: f32,
+    window_y: f32,
+) {
+    let neighbor_cell_range = collision_neighbor_cell_range(balls, grid_size);
 
     for _ in 0..iterations {
+        run_all_grid_code(grid_size, grids, balls, window_x, window_y);
+
+        let row_count: usize = grid_row_count(grids);
+        let column_count: usize = grid_column_count(grids);
+
         for current_grid_index in 0..grids.len() {
             resolve_ball_pairs_inside_cell(balls, &grids[current_grid_index].ball_inside);
 
             let cell_x = grids[current_grid_index].cell_coordinates.x as isize;
             let cell_y = grids[current_grid_index].cell_coordinates.y as isize;
 
-            for (x_offset, y_offset) in neighbor_offsets {
-                let neighbor_x = cell_x + x_offset;
-                let neighbor_y = cell_y + y_offset;
+            for x_offset in 0..=neighbor_cell_range {
+                for y_offset in -neighbor_cell_range..=neighbor_cell_range {
+                    if x_offset == 0 && y_offset <= 0 {
+                        continue;
+                    }
 
-                if neighbor_x < 0 || neighbor_y < 0 {
-                    continue;
-                }
+                    let neighbor_x = cell_x + x_offset;
+                    let neighbor_y = cell_y + y_offset;
 
-                let neighbor_x = neighbor_x as usize;
-                let neighbor_y = neighbor_y as usize;
+                    if neighbor_x < 0 || neighbor_y < 0 {
+                        continue;
+                    }
 
-                if neighbor_x >= column_count || neighbor_y >= row_count {
-                    continue;
-                }
+                    let neighbor_x = neighbor_x as usize;
+                    let neighbor_y = neighbor_y as usize;
 
-                let neighbor_index = grid_index(neighbor_x, neighbor_y, row_count);
-                if let Some(neighbor_grid) = grids.get(neighbor_index) {
-                    resolve_ball_pairs_between_cells(balls, &grids[current_grid_index].ball_inside, &neighbor_grid.ball_inside);
+                    if neighbor_x >= column_count || neighbor_y >= row_count {
+                        continue;
+                    }
+
+                    let neighbor_index = grid_index(neighbor_x, neighbor_y, row_count);
+                    if let Some(neighbor_grid) = grids.get(neighbor_index) {
+                        resolve_ball_pairs_between_cells(
+                            balls,
+                            &grids[current_grid_index].ball_inside,
+                            &neighbor_grid.ball_inside,
+                        );
+                    }
                 }
             }
         }
@@ -291,8 +325,7 @@ mod tests {
         ];
         let mut grids = generate_starting_ball_grids(grid_size, 800.0, 600.0);
 
-        run_all_grid_code(grid_size, &mut grids, &balls, 800.0, 600.0);
-        resolve_collisions_with_grid_iterations(&mut balls, &mut grids, 1);
+        resolve_collisions_with_grid_iterations(grid_size, &mut balls, &mut grids, 1, 800.0, 600.0);
 
         assert!(approx_eq(balls[0].x, 140.0));
         assert!(approx_eq(balls[1].x, 165.0));
@@ -307,11 +340,24 @@ mod tests {
         ];
         let mut grids = generate_starting_ball_grids(grid_size, 800.0, 600.0);
 
-        run_all_grid_code(grid_size, &mut grids, &balls, 800.0, 600.0);
-        resolve_collisions_with_grid_iterations(&mut balls, &mut grids, 1);
+        resolve_collisions_with_grid_iterations(grid_size, &mut balls, &mut grids, 1, 800.0, 600.0);
 
         assert!(balls[0].x < 145.0);
         assert!(balls[1].x > 155.0);
+    }
+    #[test]
+    fn grid_resolution_collides_large_balls_two_cells_apart() {
+        let grid_size = 30;
+        let mut balls = vec![
+            make_ball(29.0, 300.0, 20.0, 0.0),
+            make_ball(61.0, 300.0, 20.0, 0.0),
+        ];
+        let mut grids = generate_starting_ball_grids(grid_size, 800.0, 600.0);
+
+        resolve_collisions_with_grid_iterations(grid_size, &mut balls, &mut grids, 1, 800.0, 600.0);
+
+        assert!(balls[0].x < 29.0);
+        assert!(balls[1].x > 61.0);
     }
 
     //Testing for the find_collision_impulse function
