@@ -66,11 +66,6 @@ async fn main() {
         //Draws the FPS, and ball count on the screen
         draw_screen_text(&balls);
 
-        //TEMP addition to add a ball each frame if FPS is above 40 to see when performance drops
-        if get_fps() > 40 {
-            balls.push(generate_ball(100.0, 100.0));
-        }
-
         //BALL CONTROL
         ball_spawning(x, y, &mut balls);
         ball_movement(&mut held_ball, x, y, &mut balls);
