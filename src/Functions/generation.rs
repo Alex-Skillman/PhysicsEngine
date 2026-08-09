@@ -18,7 +18,6 @@ pub fn generate_starting_balls(count: u64, width: f32, height: f32) -> Vec<Ball>
                 mass: gen_range(0.01, 0.03) * radius * radius,
                 restitution: 0.9,
                 ball_color: generate_colors(),
-                current_cell:
             }
         })
         .collect()
