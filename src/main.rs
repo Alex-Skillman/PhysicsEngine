@@ -26,7 +26,7 @@ fn window_conf() -> Conf {
 #[macroquad::main("Physics Engine")]
 async fn main() {
     //Modifies that gain speed
-    let gravity: f32 = 0.3;
+    let mut gravity: f32;
 
     //Controls to starting spawn
     let mut balls: Vec<Ball> = generate_starting_balls(25, screen_width(), screen_height());
@@ -66,6 +66,10 @@ async fn main() {
         //Draws the FPS, and ball count on the screen
         draw_screen_text(&balls);
 
+        // Get the FPS and calculate gravity based on it
+        let fps = get_fps();
+        gravity = 9.8/fps as f32;
+
         //BALL CONTROL
         ball_spawning(x, y, &mut balls);
         ball_movement(&mut held_ball, x, y, &mut balls);
@@ -84,7 +88,7 @@ async fn main() {
             //Controls the independant movement of the ball
             for ball in balls.iter_mut() {
                 gravitational_acceleration(ball, gravity);
-                horizontal_movement(ball);
+                horizontal_movement(ball);a
                 border_collision(ball, &window);
                 speed_decay(ball);
                 draw_circle(ball.x, ball.y, ball.radius, ball.ball_color);

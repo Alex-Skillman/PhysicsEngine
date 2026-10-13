@@ -16,7 +16,7 @@ pub fn generate_starting_balls(count: u64, width: f32, height: f32) -> Vec<Ball>
                 y_velocity: gen_range(-3.0, 3.0),
                 radius: radius,
                 mass: gen_range(0.01, 0.03) * radius * radius,
-                restitution: 0.9,
+                restitution: 0.75,
                 ball_color: generate_colors(),
             }
         })
@@ -34,7 +34,7 @@ pub fn generate_ball(x: f32, y: f32) -> Ball {
         y_velocity: gen_range(-3.0, 3.0),
         radius: radius,
         mass: gen_range(0.01, 0.03) * radius * radius,
-        restitution: 0.9,
+        restitution: 0.75,
         ball_color: generate_colors(),
     }
 }
@@ -51,7 +51,7 @@ pub fn generate_colors() -> Color {
 pub fn generate_terminal_velocity(ball: &mut Ball) -> f32 {
     let air_density: f32 = 1.225;
     let drag_coefficient: f32 = 0.47;
-    let gravity_accel: f32 = 9.8; // real-world gravity, separate from your per-frame "gravity" constant
+    let gravity_accel: f32 = 9.8; 
     let area: f32 = std::f32::consts::PI * ball.radius * ball.radius;
 
     (2.0 * ball.mass * gravity_accel / (air_density * drag_coefficient * area)).sqrt()

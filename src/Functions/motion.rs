@@ -50,7 +50,7 @@ pub fn gravitational_acceleration(ball: &mut Ball, gravity: f32) {
 
     let terminal_velocity = generate_terminal_velocity(ball);
 
-    if ball.y_velocity < terminal_velocity * 20.0 {
+    if ball.y_velocity < terminal_velocity * 50.0 {
         ball.y_velocity += gravity;
     }
     //Adds the current speed to change the position downward
